@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>여교사 휴게실 예약</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --green:       #1e7e4a;
+    --green-mid:   #28a85f;
+    --green-light: #eaf6ef;
+    --green-pale:  #f4fbf7;
+    --green-dark:  #145233;
+    --gray-1: #f8f9fa;
+    --gray-2: #e9ecef;
+    --gray-3: #dee2e6;
+    --gray-4: #ced4da;
+    --gray-6: #6c757d;
+    --gray-8: #343a40;
+    --white:  #ffffff;
+    --radius:    10px;
+    --radius-sm:  6px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Noto Sans KR', sans-serif;
+    background: linear-gradient(135deg, #e8f5ee 0%, #f0f4f8 100%);
+    min-height: 100vh;
+    padding: 20px;
+    color: var(--gray-8);
+  }
+  .app-wrap { max-width: 880px; margin: 0 auto; }
+
+  /* HEADER */
+  .app-header {
+    background: linear-gradient(135deg, var(--green-dark) 0%, var(--green) 60%, var(--green-mid) 100%);
+    border-radius: var(--radius) var(--radius) 0 0;
+    padding: 26px 32px 20px;
+    color: white; position: relative; overflow: hidden;
+  }
+  .app-header::before {
+    content:''; position:absolute; right:-30px; top:-30px;
+    width:160px; height:160px; border-radius:50%;
+    background:rgba(255,255,255,0.06);
+  }
+  .app-header h1 { font-size: 24px; font-weight: 700; letter-spacing: -0.5px; }
+  .app-header .sub { font-size: 12px; opacity: .8; margin-top: 4px; }
+  .header-badges { display:flex; gap:8px; flex-wrap:wrap; margin-top:14px; }
+  .badge {
+    font-size:11px; font-weight:500; padding:4px 11px; border-radius:20px;
+    background:rgba(255,255,255,0.18); color:white;
+    border:1px solid rgba(255,255,255,0.25);
+  }
+
+  /* STATUS BAR */
+  .status-bar {
+    display:flex; align-items:center; gap:10px;
+    background: white; border:1px solid var(--gray-3); border-top:none;
+    padding: 10px 24px; font-size: 12px;
+  }
+  .dot { width:8px; height:8px; border-radius:50%; background:var(--gray-4); flex-shrink:0; }
+  .dot.online { background:#27ae60; box-shadow:0 0 0 3px rgba(39,174,96,0.2); }
+  .dot.offline { background:#e74c3c; }
+  .dot.loading { background:#f39c12; animation: pulse 1s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+  .status-text { color:var(--gray-6); }
+  .sync-btn {
+    margin-left:auto; font-size:11px; font-family:inherit;
+    padding:4px 12px; border:1px solid var(--gray-3); border-radius:20px;
+    background:white; color:var(--gray-6); cursor:pointer; transition:all .15s;
+  }
+  .sync-btn:hover { background:var(--green-light); border-color:var(--green-mid); color:var(--green-dark); }
+  .last-sync { font-size:11px; color:var(--gray-4); }
+
+  /* SETUP BANNER */
+  .setup-banner {
+    background:#fff8e1; border:1px solid #ffe082; border-top:none;
+    padding:14px 24px; font-size:13px; color:#5d4037; line-height:1.8;
+    display:none;
+  }
+  .setup-banner.show { display:block; }
+  .setup-banner strong { color:#bf360c; }
+  .setup-banner code {
+    background:#fff3cd; padding:2px 6px; border-radius:4px;
+    font-size:12px; color:#5d4037; font-family:monospace;
+  }
+  .setup-banner ol { padding-left:18px; margin-top:6px; }
+  .setup-banner li { margin-bottom:4px; }
+  .url-input-row { display:flex; gap:8px; margin-top:10px; }
+  .url-input-row input {
+    flex:1; padding:8px 12px; border:1.5px solid var(--gray-3); border-radius:var(--radius-sm);
+    font-family:inherit; font-size:12px; color:var(--gray-8); outline:none;
+  }
+  .url-input-row input:focus { border-color:var(--green-mid); }
+  .url-input-row button {
+    padding:8px 18px; background:var(--green); color:white; border:none;
+    border-radius:var(--radius-sm); font-family:inherit; font-size:13px;
+    font-weight:500; cursor:pointer; transition:background .15s; white-space:nowrap;
+  }
+  .url-input-row button:hover { background:var(--green-dark); }
+
+  /* NAME BAR */
+  .name-bar {
+    background:white; border:1px solid var(--gray-3); border-top:none;
+    padding:14px 24px; display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+  }
+  .name-bar label { font-size:13px; font-weight:500; color:var(--gray-6); white-space:nowrap; }
+  .name-bar input {
+    padding:8px 14px; border:1.5px solid var(--gray-3); border-radius:var(--radius-sm);
+    font-family:inherit; font-size:14px; width:160px; outline:none; transition:border-color .2s;
+    color:var(--gray-8); background:white;
+  }
+  .name-bar input:focus { border-color:var(--green-mid); }
+  .name-bar input.error { border-color:#e74c3c; }
+  .name-bar .hint { font-size:12px; color:var(--gray-6); }
+  .week-info { margin-left:auto; font-size:12px; font-weight:500; color:var(--green-dark); white-space:nowrap; }
+
+  /* NOTICE */
+  .notice-bar {
+    background:var(--green-pale); border-left:3px solid var(--green-mid);
+    border-right:1px solid var(--gray-3);
+    padding:10px 24px; font-size:12px; color:var(--green-dark); line-height:1.7;
+  }
+
+  /* TABLE */
+  .table-outer {
+    background:white; border:1px solid var(--gray-3); border-top:none; overflow-x:auto;
+    position:relative;
+  }
+  .table-loading {
+    position:absolute; inset:0; background:rgba(255,255,255,0.85);
+    display:flex; align-items:center; justify-content:center;
+    font-size:14px; color:var(--gray-6); z-index:10;
+    border-radius:0;
+  }
+  .spinner {
+    width:20px; height:20px; border:2px solid var(--gray-3);
+    border-top-color:var(--green-mid); border-radius:50%;
+    animation:spin .8s linear infinite; margin-right:10px;
+  }
+  @keyframes spin { to { transform:rotate(360deg); } }
+
+  table { width:100%; border-collapse:collapse; min-width:660px; }
+  thead th {
+    background:#f0f9f4; font-size:12px; font-weight:500; color:var(--gray-6);
+    padding:10px 6px; text-align:center; border-bottom:2px solid var(--green-light);
+  }
+  .day-name { font-size:14px; font-weight:700; color:var(--green-dark); padding-top:2px; }
+  .date-sub { font-size:11px; color:var(--gray-6); font-weight:400; }
+  th.col-period { width:58px; border-right:2px solid var(--green-light); }
+  th.col-time   { width:115px; border-right:2px solid var(--green-light); text-align:right; padding-right:12px; }
+  th.col-day    { min-width:110px; }
+  tbody tr { border-bottom:1px solid var(--gray-2); transition:background .1s; }
+  tbody tr:last-child { border-bottom:none; }
+  tbody tr:hover { background:var(--gray-1); }
+  td { vertical-align:middle; height:46px; }
+  td.col-period {
+    text-align:center; font-size:12px; font-weight:700; color:var(--green-dark);
+    background:var(--green-pale); border-right:2px solid var(--green-light); width:58px;
+  }
+  td.col-time {
+    font-size:11px; color:var(--gray-6); text-align:right; padding-right:12px;
+    border-right:2px solid var(--green-light); white-space:nowrap;
+  }
+  td.col-day { padding:5px 6px; }
+
+  /* SLOT BUTTONS */
+  .slot-empty {
+    width:100%; height:36px; border:1.5px dashed var(--gray-4); border-radius:var(--radius-sm);
+    background:transparent; color:var(--gray-4); font-size:12px; font-family:inherit;
+    cursor:pointer; transition:all .15s; display:flex; align-items:center; justify-content:center; gap:4px;
+  }
+  .slot-empty:hover { border-color:var(--green-mid); color:var(--green-mid); background:var(--green-pale); }
+  .slot-taken {
+    width:100%; height:36px; border:1.5px solid #b6dfca; border-radius:var(--radius-sm);
+    background:var(--green-light); color:var(--green-dark);
+    font-size:13px; font-weight:500; font-family:inherit; cursor:pointer;
+    transition:all .15s; display:flex; align-items:center; justify-content:center;
+    gap:4px; position:relative; overflow:hidden;
+  }
+  .slot-taken .del { position:absolute; right:8px; font-size:11px; opacity:0; color:#c0392b; transition:opacity .15s; }
+  .slot-taken:hover { background:#fdecea; border-color:#f5b4b4; color:#c0392b; }
+  .slot-taken:hover .del { opacity:1; }
+  .slot-taken.saving { opacity:.6; cursor:wait; }
+
+  /* TABS */
+  .tabs {
+    display:flex; background:white;
+    border:1px solid var(--gray-3); border-top:none; border-bottom:none;
+  }
+  .tab-btn {
+    flex:1; padding:12px; border:none; background:transparent;
+    font-family:inherit; font-size:13px; font-weight:500;
+    color:var(--gray-6); cursor:pointer; border-bottom:2px solid transparent; transition:all .15s;
+  }
+  .tab-btn.active { color:var(--green); border-bottom-color:var(--green); background:var(--green-pale); }
+  .tab-btn:hover:not(.active) { background:var(--gray-1); color:var(--gray-8); }
+
+  /* LOG PANEL */
+  .log-panel { background:white; border:1px solid var(--gray-3); border-top:none; display:none; max-height:360px; overflow-y:auto; }
+  .log-panel.visible { display:block; }
+  .log-header { display:flex; align-items:center; justify-content:space-between; padding:12px 20px 8px; border-bottom:1px solid var(--gray-2); }
+  .log-header span { font-size:13px; font-weight:500; }
+  .log-empty { text-align:center; padding:30px; color:var(--gray-6); font-size:13px; }
+  .log-item {
+    display:flex; align-items:flex-start; gap:10px;
+    padding:10px 20px; border-bottom:1px solid var(--gray-2); font-size:12px;
+    animation:fadeIn .2s ease;
+  }
+  @keyframes fadeIn { from{opacity:0;transform:translateY(-4px)} to{opacity:1;transform:translateY(0)} }
+  .log-item:last-child { border-bottom:none; }
+  .log-icon {
+    width:20px; height:20px; border-radius:50%; display:flex; align-items:center;
+    justify-content:center; font-size:10px; flex-shrink:0; margin-top:1px;
+  }
+  .log-icon.reserve { background:var(--green-light); color:var(--green-dark); }
+  .log-icon.cancel  { background:#fdecea; color:#c0392b; }
+  .log-content { flex:1; line-height:1.5; }
+  .log-main   { color:var(--gray-8); font-weight:500; }
+  .log-detail { color:var(--gray-6); margin-top:2px; }
+  .log-time   { color:var(--gray-4); font-size:11px; white-space:nowrap; }
+
+  /* FOOTER */
+  .app-footer {
+    background:var(--gray-1); border:1px solid var(--gray-3); border-top:none;
+    border-radius:0 0 var(--radius) var(--radius);
+    padding:14px 24px; font-size:11.5px; color:var(--gray-6); line-height:1.8;
+  }
+  .app-footer strong { color:var(--gray-8); font-weight:500; }
+
+  /* TOAST */
+  .toast {
+    position:fixed; bottom:30px; left:50%;
+    transform:translateX(-50%) translateY(10px);
+    background:rgba(30,30,30,0.92); color:white;
+    font-size:13px; font-weight:500; padding:11px 22px; border-radius:30px;
+    opacity:0; pointer-events:none; transition:all .3s; z-index:999; white-space:nowrap;
+  }
+  .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+  .toast.success { background:rgba(30,126,74,0.92); }
+  .toast.error   { background:rgba(192,57,43,0.92); }
+
+  /* MODAL */
+  .modal-overlay {
+    position:fixed; inset:0; background:rgba(0,0,0,0.45);
+    display:flex; align-items:center; justify-content:center;
+    z-index:100; opacity:0; pointer-events:none; transition:opacity .2s;
+  }
+  .modal-overlay.show { opacity:1; pointer-events:all; }
+  .modal {
+    background:white; border-radius:var(--radius); padding:28px 32px; width:340px;
+    box-shadow:0 8px 32px rgba(0,0,0,0.12); transform:scale(.95); transition:transform .2s;
+  }
+  .modal-overlay.show .modal { transform:scale(1); }
+  .modal h3 { font-size:16px; font-weight:700; margin-bottom:8px; }
+  .modal p  { font-size:13px; color:var(--gray-6); line-height:1.6; margin-bottom:20px; }
+  .slot-info-text { font-weight:600; color:var(--green-dark); }
+  .modal-btns { display:flex; gap:10px; }
+  .modal-btns button {
+    flex:1; padding:10px; border-radius:var(--radius-sm);
+    font-family:inherit; font-size:14px; font-weight:500; cursor:pointer; transition:all .15s;
+  }
+  .btn-close  { border:1.5px solid var(--gray-3); background:white; color:var(--gray-6); }
+  .btn-close:hover  { background:var(--gray-1); }
+  .btn-confirm { border:none; background:#e74c3c; color:white; }
+  .btn-confirm:hover { background:#c0392b; }
+
+  @media(max-width:600px) {
+    body { padding:10px; }
+    .app-header { padding:18px 16px 14px; }
+    .app-header h1 { font-size:20px; }
+    .name-bar { padding:12px 16px; }
+    .week-info { margin-left:0; width:100%; }
+  }
+</style>
+</head>
+<body>
+<div class="app-wrap">
+
+  <!-- HEADER -->
+  <div class="app-header">
+    <h1>🌿 여교사 휴게실 예약</h1>
+    <div class="sub">사전 예약 스케줄러 — 원활한 사용을 위해 미리 예약해 주세요</div>
+    <div class="header-badges">
+      <span class="badge" id="weekBadge">📅 로딩 중...</span>
+      <span class="badge">🔄 매주 월요일 자동 초기화</span>
+      <span class="badge">☁️ Google Sheets 실시간 공유</span>
+    </div>
+  </div>
+
+  <!-- STATUS BAR -->
+  <div class="status-bar">
+    <div class="dot loading" id="statusDot"></div>
+    <span class="status-text" id="statusText">서버 연결 중...</span>
+    <span class="last-sync" id="lastSync"></span>
+    <button class="sync-btn" onclick="syncAll()">↻ 새로고침</button>
+  </div>
+
+  <!-- SETUP BANNER (shown until URL configured) -->
+  <div class="setup-banner" id="setupBanner">
+    <strong>⚙️ 최초 설정 필요</strong> — Google Apps Script URL을 아래에 입력해 주세요.<br>
+    설정 방법:
+    <ol>
+      <li>구글 드라이브 → <strong>새로 만들기 → Google 스프레드시트</strong> 생성</li>
+      <li>상단 메뉴 <strong>확장 프로그램 → Apps Script</strong> 클릭</li>
+      <li>편집기에 <code>apps_script_backend.gs</code> 파일 내용 전체 붙여넣기</li>
+      <li>상단 <strong>배포 → 새 배포</strong> → 유형: <strong>웹 앱</strong> 선택</li>
+      <li>액세스 권한: <strong>"모든 사용자"</strong> 로 설정 후 배포</li>
+      <li>생성된 <strong>웹 앱 URL</strong>을 아래에 붙여넣기</li>
+    </ol>
+    <div class="url-input-row">
+      <input type="text" id="scriptUrlInput" placeholder="https://script.google.com/macros/s/AKf.../exec">
+      <button onclick="saveScriptUrl()">저장 및 연결</button>
+    </div>
+  </div>
+
+  <!-- NAME BAR -->
+  <div class="name-bar">
+    <label>내 이름</label>
+    <input type="text" id="userName" placeholder="이름 입력" maxlength="10" autocomplete="off">
+    <span class="hint">이름 입력 후 원하는 시간대를 클릭하세요</span>
+    <span class="week-info" id="weekInfo"></span>
+  </div>
+
+  <!-- NOTICE -->
+  <div class="notice-bar">
+    <strong>💬 안내:</strong> 원활한 사용을 위해 사용하실 분들은 미리 스케줄표에 이름을 써 주시기 바랍니다.<br>
+    <strong>🧹 청소 우선:</strong> 남자&amp;여자 휴게실 청소 — 매주 화요일 10시 50분부터 (환기 필요시 10분 환기)
+  </div>
+
+  <!-- TABLE -->
+  <div class="table-outer">
+    <div class="table-loading" id="tableLoading">
+      <div class="spinner"></div> 예약 현황을 불러오는 중...
+    </div>
+    <table id="scheduleTable">
+      <thead>
+        <tr id="dateRow">
+          <th class="col-period">교시</th>
+          <th class="col-time">시간</th>
+        </tr>
+        <tr id="dayRow">
+          <th class="col-period"></th>
+          <th class="col-time"></th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+  </div>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('schedule')">📅 예약 현황</button>
+    <button class="tab-btn" onclick="switchTab('log')">📋 변경 이력</button>
+  </div>
+
+  <!-- LOG PANEL -->
+  <div class="log-panel" id="logPanel">
+    <div class="log-header">
+      <span>변경 이력 (이번 주)</span>
+    </div>
+    <div id="logList"><div class="log-empty">이력을 불러오는 중...</div></div>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="app-footer">
+    <strong>예약:</strong> 이름 입력 → 빈 칸 클릭 &nbsp;|&nbsp;
+    <strong>취소:</strong> 예약된 칸 클릭 → 확인 &nbsp;|&nbsp;
+    <strong>초기화:</strong> 매주 월요일 자동 &nbsp;|&nbsp;
+    <strong>공유:</strong> 이 HTML 파일을 구글 드라이브에 올려 공유하면 모두 같은 예약 현황 확인 가능
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- CANCEL MODAL -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <h3>예약 취소</h3>
+    <p>이 예약을 취소할까요?<br><span class="slot-info-text" id="modalSlotInfo"></span></p>
+    <div class="modal-btns">
+      <button class="btn-close" onclick="closeModal()">닫기</button>
+      <button class="btn-confirm" id="modalConfirmBtn" onclick="confirmCancel()">취소하기</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── CONFIG ────────────────────────────────────────────────────────
+// ★ 직접 URL을 여기에 입력할 수도 있습니다:
+// const SCRIPT_URL = 'https://script.google.com/macros/s/YOUR_ID/exec';
+const SCRIPT_URL_KEY = 'lounge_scriptUrl';
+
+const PERIODS = [
+  { label:'1교시', time:'오전 8:50' },
+  { label:'2교시', time:'오전 9:45' },
+  { label:'3교시', time:'오전 10:40' },
+  { label:'4교시', time:'오전 11:35' },
+  { label:'점심①', time:'오후 12:20' },
+  { label:'점심②', time:'오후 13:00' },
+  { label:'5교시', time:'오후 1:40' },
+  { label:'6교시', time:'오후 2:35' },
+  { label:'7교시', time:'오후 3:30' },
+];
+const DAYS = [
+  { key:'mon', name:'월요일' },
+  { key:'tue', name:'화요일' },
+  { key:'wed', name:'수요일' },
+  { key:'thu', name:'목요일' },
+  { key:'fri', name:'금요일' },
+];
+
+// ── STATE ─────────────────────────────────────────────────────────
+let scriptUrl = localStorage.getItem(SCRIPT_URL_KEY) || '';
+let schedule  = {};
+let pendingMeta = null;
+let autoRefreshTimer = null;
+
+// ── UTILS ─────────────────────────────────────────────────────────
+function getMonday() {
+  const d = new Date();
+  const day = d.getDay();
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+  d.setDate(diff);
+  return d;
+}
+function fmt(d) { return `${d.getMonth()+1}월 ${d.getDate()}일`; }
+function nowStr() {
+  const n = new Date();
+  const hh = n.getHours().toString().padStart(2,'0');
+  const mm = n.getMinutes().toString().padStart(2,'0');
+  return `${n.getMonth()+1}/${n.getDate()} ${hh}:${mm}`;
+}
+
+// ── API ───────────────────────────────────────────────────────────
+async function api(params) {
+  if (!scriptUrl) throw new Error('URL 미설정');
+  const url = scriptUrl + '?' + new URLSearchParams(params);
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  const data = await res.json();
+  if (data.error) throw new Error(data.error);
+  return data;
+}
+
+// ── SYNC ──────────────────────────────────────────────────────────
+async function syncAll() {
+  if (!scriptUrl) return;
+  setStatus('loading', '동기화 중...');
+  try {
+    const data = await api({ action: 'getSchedule' });
+    schedule = data.schedule || {};
+    refreshTable();
+    setStatus('online', '연결됨');
+    document.getElementById('lastSync').textContent = '마지막 동기화: ' + nowStr();
+  } catch(e) {
+    setStatus('offline', '연결 오류 — 네트워크를 확인하세요');
+  }
+}
+
+function setStatus(state, text) {
+  const dot  = document.getElementById('statusDot');
+  const span = document.getElementById('statusText');
+  dot.className = 'dot ' + state;
+  span.textContent = text;
+}
+
+// ── SETUP ─────────────────────────────────────────────────────────
+function saveScriptUrl() {
+  const val = document.getElementById('scriptUrlInput').value.trim();
+  if (!val.startsWith('https://script.google.com')) {
+    showToast('올바른 Apps Script URL을 입력해 주세요', 'error'); return;
+  }
+  scriptUrl = val;
+  localStorage.setItem(SCRIPT_URL_KEY, val);
+  document.getElementById('setupBanner').classList.remove('show');
+  showToast('URL이 저장되었습니다! 연결 중...', 'success');
+  syncAll();
+  startAutoRefresh();
+}
+
+// ── INIT ──────────────────────────────────────────────────────────
+function init() {
+  // Week header
+  const monday = getMonday();
+  const friday = new Date(monday); friday.setDate(monday.getDate() + 4);
+  document.getElementById('weekBadge').textContent = `📅 ${fmt(monday)} ~ ${fmt(friday)}`;
+  document.getElementById('weekInfo').textContent  = `${fmt(monday)} 주`;
+
+  // Show setup if no URL
+  if (!scriptUrl) {
+    document.getElementById('setupBanner').classList.add('show');
+    setStatus('offline', 'URL 설정 필요');
+    document.getElementById('tableLoading').style.display = 'none';
+  }
+
+  // Build table header
+  buildHeader();
+
+  // Load saved name
+  const savedName = localStorage.getItem('lounge_username');
+  if (savedName) document.getElementById('userName').value = savedName;
+
+  // Sync if URL exists
+  if (scriptUrl) {
+    syncAll();
+    startAutoRefresh();
+  }
+
+  // Keyboard shortcut: Enter on URL input
+  document.getElementById('scriptUrlInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') saveScriptUrl();
+  });
+}
+
+function startAutoRefresh() {
+  if (autoRefreshTimer) clearInterval(autoRefreshTimer);
+  autoRefreshTimer = setInterval(syncAll, 30000); // 30초마다 자동 동기화
+}
+
+// ── TABLE ─────────────────────────────────────────────────────────
+function buildHeader() {
+  const monday  = getMonday();
+  const dateRow = document.getElementById('dateRow');
+  const dayRow  = document.getElementById('dayRow');
+  while (dateRow.children.length > 2) dateRow.removeChild(dateRow.lastChild);
+  while (dayRow.children.length > 2)  dayRow.removeChild(dayRow.lastChild);
+
+  DAYS.forEach((d, i) => {
+    const date = new Date(monday);
+    date.setDate(monday.getDate() + i);
+
+    const th1 = document.createElement('th');
+    th1.className = 'col-day';
+    th1.innerHTML = `<div class="date-sub">${fmt(date)}</div>`;
+    dateRow.appendChild(th1);
+
+    const th2 = document.createElement('th');
+    th2.className = 'col-day';
+    th2.innerHTML = `<div class="day-name">${d.name}</div>`;
+    dayRow.appendChild(th2);
+  });
+}
+
+function refreshTable() {
+  document.getElementById('tableLoading').style.display = 'none';
+  const tbody = document.getElementById('tableBody');
+  tbody.innerHTML = '';
+
+  PERIODS.forEach((p, pi) => {
+    const tr = document.createElement('tr');
+
+    const tdP = document.createElement('td'); tdP.className = 'col-period'; tdP.textContent = p.label;
+    const tdT = document.createElement('td'); tdT.className = 'col-time';   tdT.textContent = p.time;
+    tr.appendChild(tdP); tr.appendChild(tdT);
+
+    DAYS.forEach((d) => {
+      const key  = `${d.key}_${pi}`;
+      const name = schedule[key];
+      const td   = document.createElement('td');
+      td.className = 'col-day';
+
+      if (name) {
+        const btn = document.createElement('button');
+        btn.className = 'slot-taken';
+        btn.innerHTML = `<span>${name}</span><span class="del">✕</span>`;
+        btn.title = `${name} — 클릭하여 취소`;
+        btn.onclick = () => openModal(key, name, p, d);
+        td.appendChild(btn);
+      } else {
+        const btn = document.createElement('button');
+        btn.className = 'slot-empty';
+        btn.innerHTML = `<span style="font-size:16px;font-weight:300">+</span><span>예약</span>`;
+        btn.onclick = () => handleReserve(key, p, d);
+        td.appendChild(btn);
+      }
+      tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  });
+}
+
+// ── ACTIONS ───────────────────────────────────────────────────────
+function getName() {
+  const n = document.getElementById('userName').value.trim();
+  if (!n) {
+    document.getElementById('userName').classList.add('error');
+    document.getElementById('userName').focus();
+    showToast('먼저 이름을 입력해 주세요', 'error');
+    setTimeout(() => document.getElementById('userName').classList.remove('error'), 1500);
+    return null;
+  }
+  return n;
+}
+
+async function handleReserve(key, period, day) {
+  const name = getName();
+  if (!name) return;
+  if (schedule[key]) { showToast('이미 예약된 시간입니다', 'error'); return; }
+  if (!scriptUrl)    { showToast('서버 URL을 먼저 설정해 주세요', 'error'); return; }
+
+  // Optimistic update
+  schedule[key] = name;
+  refreshTable();
+  localStorage.setItem('lounge_username', name);
+
+  try {
+    await api({ action:'reserve', key, name, period: period.label, day: day.name });
+    showToast(`예약 완료! ${day.name} ${period.label} — ${name}`, 'success');
+  } catch(e) {
+    delete schedule[key];
+    refreshTable();
+    showToast('예약 실패: ' + e.message, 'error');
+  }
+}
+
+function openModal(key, name, period, day) {
+  pendingMeta = { key, name, period, day };
+  document.getElementById('modalSlotInfo').textContent = `${day.name} ${period.label} · ${name}`;
+  document.getElementById('modalOverlay').classList.add('show');
+}
+
+async function confirmCancel() {
+  if (!pendingMeta) return;
+  const { key, name, period, day } = pendingMeta;
+  closeModal();
+
+  if (!scriptUrl) { showToast('서버 URL을 먼저 설정해 주세요', 'error'); return; }
+
+  // Optimistic update
+  delete schedule[key];
+  refreshTable();
+
+  try {
+    await api({ action:'cancel', key, period: period.label, day: day.name });
+    showToast(`예약 취소: ${day.name} ${period.label} — ${name}`, 'error');
+  } catch(e) {
+    // Rollback
+    schedule[key] = name;
+    refreshTable();
+    showToast('취소 실패: ' + e.message, 'error');
+  }
+}
+
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('show');
+  pendingMeta = null;
+}
+document.getElementById('modalOverlay').addEventListener('click', e => { if (e.target === e.currentTarget) closeModal(); });
+
+// ── LOG ───────────────────────────────────────────────────────────
+async function loadLogs() {
+  if (!scriptUrl) {
+    document.getElementById('logList').innerHTML = '<div class="log-empty">서버 URL 설정 후 이용 가능합니다</div>';
+    return;
+  }
+  try {
+    const data = await api({ action: 'getLogs' });
+    const logs = data.logs || [];
+    const el = document.getElementById('logList');
+    if (!logs.length) { el.innerHTML = '<div class="log-empty">아직 변경 이력이 없습니다</div>'; return; }
+    el.innerHTML = logs.map(l => {
+      const icon  = l.type === 'reserve' ? '✓' : '✕';
+      const label = l.type === 'reserve' ? '예약' : '취소';
+      return `<div class="log-item">
+        <div class="log-icon ${l.type}">${icon}</div>
+        <div class="log-content">
+          <div class="log-main">${l.name} — ${label}</div>
+          <div class="log-detail">${l.day} ${l.period}</div>
+        </div>
+        <div class="log-time">${l.time}</div>
+      </div>`;
+    }).join('');
+  } catch(e) {
+    document.getElementById('logList').innerHTML = '<div class="log-empty">이력을 불러오지 못했습니다</div>';
+  }
+}
+
+// ── TABS ──────────────────────────────────────────────────────────
+function switchTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach((b, i) => {
+    b.classList.toggle('active', (i===0 && tab==='schedule') || (i===1 && tab==='log'));
+  });
+  document.getElementById('logPanel').classList.toggle('visible', tab === 'log');
+  if (tab === 'log') loadLogs();
+}
+
+// ── TOAST ─────────────────────────────────────────────────────────
+let toastTimer;
+function showToast(msg, type='') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'toast show ' + type;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.className = 'toast', 2800);
+}
+
+// ── START ─────────────────────────────────────────────────────────
+init();
+</script>
+</body>
+</html>
